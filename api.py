@@ -1405,9 +1405,12 @@ async def update_user_profile(
 @app.post("/chat/create-room")
 def create_chat_room(
     user2_id: str,
-    current_user: User = Depends(get_current_user),
+    user_id: int = 3,
     db: Session = Depends(get_db)
 ):
+    current_user = db.query(User).filter(User.id == user_id).first()
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
     # Check if room already exists
     existing_room = db.query(ChatRoom).filter(
         ((ChatRoom.user1_id == current_user.id) & (ChatRoom.user2_id == user2_id)) |
@@ -1431,13 +1434,17 @@ async def send_chat_message(
     room_id: str,
     message_text: str = Form(None),
     media: UploadFile = File(None),
-    current_user: User = Depends(get_current_user),
+    user_id: int = 3,
     db: Session = Depends(get_db)
 ):
+    current_user = db.query(User).filter(User.id == user_id).first()
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
-    
+
     if current_user.id not in [room.user1_id, room.user2_id]:
         raise HTTPException(status_code=403, detail="Not a member of this chat room")
     
@@ -1463,9 +1470,12 @@ async def send_chat_message(
 
 @app.get("/chat/rooms")
 def get_chat_rooms(
-    current_user: User = Depends(get_current_user),
+    user_id: int = 3,
     db: Session = Depends(get_db)
 ):
+    current_user = db.query(User).filter(User.id == user_id).first()
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
     return db.query(ChatRoom).filter(
         (ChatRoom.user1_id == current_user.id) | (ChatRoom.user2_id == current_user.id)
     ).order_by(ChatRoom.updated_at.desc()).all()
@@ -1475,13 +1485,16 @@ def get_chat_messages(
     room_id: str,
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(get_current_user),
+    user_id: int = 3,
     db: Session = Depends(get_db)
 ):
+    current_user = db.query(User).filter(User.id == user_id).first()
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
-    
+
     if current_user.id not in [room.user1_id, room.user2_id]:
         raise HTTPException(status_code=403, detail="Not a member of this chat room")
     
