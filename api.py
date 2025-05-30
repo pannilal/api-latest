@@ -254,7 +254,7 @@ class SocialReport(Base):
 
 class ChatRoom(Base):
     __tablename__ = 'chat_rooms'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user1_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     user2_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     is_active = Column(Boolean, default=True)
@@ -264,7 +264,7 @@ class ChatRoom(Base):
 class ChatMessage(Base):
     __tablename__ = 'chat_messages'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    chat_room_id = Column(UUID(as_uuid=True), ForeignKey('chat_rooms.id'), nullable=False)
+    chat_room_id = Column(Integer, ForeignKey('chat_rooms.id'), nullable=False)
     sender_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     message_text = Column(Text)
     media_url = Column(Text)
@@ -275,7 +275,7 @@ class ChatMessage(Base):
 class ChatReport(Base):
     __tablename__ = 'chat_reports'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    chat_room_id = Column(UUID(as_uuid=True), ForeignKey('chat_rooms.id'), nullable=False)
+    chat_room_id = Column(Integer, ForeignKey('chat_rooms.id'), nullable=False)
     message_id = Column(UUID(as_uuid=True), ForeignKey('chat_messages.id'), nullable=False)
     reported_by = Column(Integer, ForeignKey('users.id'), nullable=False)
     report_type = Column(String(50))
@@ -1466,7 +1466,7 @@ def create_chat_room(
 
 @app.post("/chat/{room_id}/send-message")
 async def send_chat_message(
-    room_id: str,
+    room_id: int,
     message_text: str = Form(None),
     media: UploadFile = File(None),
     db: Session = Depends(get_db)
@@ -1532,7 +1532,7 @@ def get_chat_rooms(
 
 @app.get("/chat/{room_id}/messages")
 def get_chat_messages(
-    room_id: str,
+    room_id: int,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db)
