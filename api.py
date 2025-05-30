@@ -1426,13 +1426,10 @@ async def update_user_profile(
 # Chat endpoints
 @app.post("/chat/create-room")
 def create_chat_room(
-    user2_id: str,
-    user_id: int = 3,
+    user2_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user = db.query(User).filter(User.id == user_id).first()
-    if not current_user:
-        raise HTTPException(status_code=404, detail="User not found")
     # Check if room already exists
     existing_room = db.query(ChatRoom).filter(
         ((ChatRoom.user1_id == current_user.id) & (ChatRoom.user2_id == user2_id)) |
@@ -1440,7 +1437,13 @@ def create_chat_room(
     ).first()
     
     if existing_room:
-        return existing_room
+        return {
+            "id": str(existing_room.id),
+            "user1_id": str(existing_room.user1_id),
+            "user2_id": str(existing_room.user2_id),
+            "created_at": existing_room.created_at,
+            "updated_at": existing_room.updated_at,
+        }
     
     room = ChatRoom(
         user1_id=current_user.id,
@@ -1449,19 +1452,22 @@ def create_chat_room(
     db.add(room)
     db.commit()
     db.refresh(room)
-    return room
+    return {
+        "id": str(room.id),
+        "user1_id": str(room.user1_id),
+        "user2_id": str(room.user2_id),
+        "created_at": room.created_at,
+        "updated_at": room.updated_at,
+    }
 
 @app.post("/chat/{room_id}/send-message")
 async def send_chat_message(
     room_id: str,
     message_text: str = Form(None),
     media: UploadFile = File(None),
-    user_id: int = 3,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user = db.query(User).filter(User.id == user_id).first()
-    if not current_user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
@@ -1486,43 +1492,63 @@ async def send_chat_message(
         media_type=media_type
     )
     db.add(message)
+    room.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(message)
-    return message
+    return {
+        "id": str(message.id),
+        "chat_room_id": str(message.chat_room_id),
+        "sender_id": str(message.sender_id),
+        "message_text": message.message_text,
+        "media_url": message.media_url,
+        "media_type": message.media_type,
+        "created_at": message.created_at,
+    }
 
 @app.get("/chat/rooms")
 def get_chat_rooms(
-    user_id: int = 3,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user = db.query(User).filter(User.id == user_id).first()
-    if not current_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db.query(ChatRoom).filter(
+    rooms = db.query(ChatRoom).filter(
         (ChatRoom.user1_id == current_user.id) | (ChatRoom.user2_id == current_user.id)
     ).order_by(ChatRoom.updated_at.desc()).all()
+    return [{
+        "id": str(room.id),
+        "user1_id": str(room.user1_id),
+        "user2_id": str(room.user2_id),
+        "created_at": room.created_at,
+        "updated_at": room.updated_at,
+    } for room in rooms]
 
 @app.get("/chat/{room_id}/messages")
 def get_chat_messages(
     room_id: str,
     skip: int = 0,
     limit: int = 50,
-    user_id: int = 3,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user = db.query(User).filter(User.id == user_id).first()
-    if not current_user:
-        raise HTTPException(status_code=404, detail="User not found")
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
 
     if current_user.id not in [room.user1_id, room.user2_id]:
         raise HTTPException(status_code=403, detail="Not a member of this chat room")
-    
-    return db.query(ChatMessage).filter(
+
+    messages = db.query(ChatMessage).filter(
         ChatMessage.chat_room_id == room_id
     ).order_by(ChatMessage.created_at.desc()).offset(skip).limit(limit).all()
+
+    return [{
+        "id": str(message.id),
+        "chat_room_id": str(message.chat_room_id),
+        "sender_id": str(message.sender_id),
+        "message_text": message.message_text,
+        "media_url": message.media_url,
+        "media_type": message.media_type,
+        "created_at": message.created_at,
+    } for message in messages]
 
 # Helper functions for managing reactions
 def add_reaction(post_id: str, user_id: str, reaction_type: str, db: Session = None):
