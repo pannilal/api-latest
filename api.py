@@ -316,6 +316,17 @@ class Podcast(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 
+class Podcaster(Base):
+    __tablename__ = 'podcasters'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    bio = Column(Text)
+    image_url = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
 # FastAPI App
 app = FastAPI()
 
@@ -902,6 +913,17 @@ def get_top_podcast(content_type: str, limit: int = 5, db: Session = Depends(get
         "created_at": podcast.created_at
     } for podcast in podcasts]
 '''
+@app.get("/podcasters")
+def get_podcasters(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    podcasters = db.query(Podcaster).filter(Podcaster.is_active == True).offset(skip).limit(limit).all()
+    return [{
+        "id": str(p.id),
+        "name": p.name,
+        "bio": p.bio,
+        "image_url": p.image_url,
+        "created_at": p.created_at
+    } for p in podcasters]
+
 @app.get("/posts/{post_id}")
 def get_post(post_id: str, db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == post_id).first()
