@@ -1427,13 +1427,17 @@ async def update_user_profile(
 @app.post("/chat/create-room")
 def create_chat_room(
     user2_id: int,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Create a chat room without requiring authentication.
+
+    The current user is assumed to be user id 3.
+    """
+    current_user_id = 3
     # Check if room already exists
     existing_room = db.query(ChatRoom).filter(
-        ((ChatRoom.user1_id == current_user.id) & (ChatRoom.user2_id == user2_id)) |
-        ((ChatRoom.user1_id == user2_id) & (ChatRoom.user2_id == current_user.id))
+        ((ChatRoom.user1_id == current_user_id) & (ChatRoom.user2_id == user2_id)) |
+        ((ChatRoom.user1_id == user2_id) & (ChatRoom.user2_id == current_user_id))
     ).first()
     
     if existing_room:
@@ -1446,7 +1450,7 @@ def create_chat_room(
         }
     
     room = ChatRoom(
-        user1_id=current_user.id,
+        user1_id=current_user_id,
         user2_id=user2_id
     )
     db.add(room)
@@ -1465,15 +1469,19 @@ async def send_chat_message(
     room_id: str,
     message_text: str = Form(None),
     media: UploadFile = File(None),
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Send a chat message without requiring authentication.
+
+    The sender is assumed to be user id 3.
+    """
+    current_user_id = 3
 
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
 
-    if current_user.id not in [room.user1_id, room.user2_id]:
+    if current_user_id not in [room.user1_id, room.user2_id]:
         raise HTTPException(status_code=403, detail="Not a member of this chat room")
     
     media_url = None
@@ -1486,7 +1494,7 @@ async def send_chat_message(
     
     message = ChatMessage(
         chat_room_id=room_id,
-        sender_id=current_user.id,
+        sender_id=current_user_id,
         message_text=message_text,
         media_url=media_url,
         media_type=media_type
@@ -1507,11 +1515,12 @@ async def send_chat_message(
 
 @app.get("/chat/rooms")
 def get_chat_rooms(
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Return chat rooms for the default user id 3 without authentication."""
+    current_user_id = 3
     rooms = db.query(ChatRoom).filter(
-        (ChatRoom.user1_id == current_user.id) | (ChatRoom.user2_id == current_user.id)
+        (ChatRoom.user1_id == current_user_id) | (ChatRoom.user2_id == current_user_id)
     ).order_by(ChatRoom.updated_at.desc()).all()
     return [{
         "id": str(room.id),
@@ -1526,14 +1535,15 @@ def get_chat_messages(
     room_id: str,
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Retrieve chat messages for the default user id 3 without authentication."""
+    current_user_id = 3
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
 
-    if current_user.id not in [room.user1_id, room.user2_id]:
+    if current_user_id not in [room.user1_id, room.user2_id]:
         raise HTTPException(status_code=403, detail="Not a member of this chat room")
 
     messages = db.query(ChatMessage).filter(
