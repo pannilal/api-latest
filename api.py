@@ -263,7 +263,7 @@ class ChatRoom(Base):
 
 class ChatMessage(Base):
     __tablename__ = 'chat_messages'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     chat_room_id = Column(Integer, ForeignKey('chat_rooms.id'), nullable=False)
     sender_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     message_text = Column(Text)
@@ -276,7 +276,7 @@ class ChatReport(Base):
     __tablename__ = 'chat_reports'
     id = Column(Integer, primary_key=True, autoincrement=True)
     chat_room_id = Column(Integer, ForeignKey('chat_rooms.id'), nullable=False)
-    message_id = Column(UUID(as_uuid=True), ForeignKey('chat_messages.id'), nullable=False)
+    message_id = Column(Integer, ForeignKey('chat_messages.id'), nullable=False)
     reported_by = Column(Integer, ForeignKey('users.id'), nullable=False)
     report_type = Column(String(50))
     action_taken = Column(Boolean, default=False)
@@ -439,6 +439,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user:
         raise credentials_exception
     return user
+
+def get_sub_from_jwt(token: str) -> str:
+    """
+    Decode the JWT and return the `sub` claim.
+    Raises ValueError if token is invalid or `sub` is missing.
+    """
+    try:
+        # Decode without verifying expiration (pass options if you want to skip exp check)
+        payload = jwt.decode(token,"09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7", algorithms=["HS256"])
+    except JWTError as e:
+        # Any decoding/validation error (signature mismatch, malformed, expired, etc.)
+        raise ValueError(f"Invalid JWT: {e}")
+
+    sub = payload.get("sub")
+    if sub is None:
+        raise ValueError("JWT payload does not contain 'sub' claim")
+
+    return sub
 
 '''
 
@@ -742,14 +760,16 @@ def filter_inappropriate_content(text: str) -> bool:
 @app.post("/posts/create")
 async def create_post(
     content_type: str = Form(...),
+    token: str = Form(...),  # Required field
     text_content: Optional[str] = Form(None),
     media_url: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
+    user_id = get_sub_from_jwt(token)
     try:
         # Create base post object
         post = Post(
-            user_id=3,
+            user_id=user_id,
             text_content=text_content,
             content_type=content_type,
             report_type=None,
@@ -771,7 +791,7 @@ async def create_post(
                     buffer.write(content)
                 
                 # Set media URL to local path
-                post.media_url = f"/media/{filename}"
+                post.media_url = f"https://api.dwanalytics.io/media/{filename}"
                 post.media_type = "image" if content_type == "image" else "video"
                 
                 print(f"File saved to: {filepath}")
@@ -799,17 +819,19 @@ async def create_post(
 
 @app.post("/prayers/create")
 async def create_prayer(
-    prayer_text: str = Form(...),  # Required field
+    prayer_text: str = Form(...),
+    token: str = Form(...),  # Required field
     db: Session = Depends(get_db)  # Fix: Add Session type hint
 ):
-    """Create a new prayer without authentication"""
+    """Create a new prayer with authentication"""
     try:
+        user_id = get_sub_from_jwt(token)
         # Get the current maximum ID
         max_id = db.query(func.max(Prayer.id)).scalar() or 0
         
         prayer = Prayer(
             id=max_id + 1,  # Set next ID explicitly
-            user_id=3,  # Fixed user ID for now since no auth required
+            user_id=user_id,
             prayer_text=prayer_text,
             status="active",
             likes_count=0,
@@ -1427,13 +1449,12 @@ async def update_user_profile(
 @app.post("/chat/create-room")
 def create_chat_room(
     user2_id: int,
+    token: str = Form(...),  # Required field
     db: Session = Depends(get_db)
 ):
-    """Create a chat room without requiring authentication.
-
-    The current user is assumed to be user id 3.
+    """Create a chat room requiring authentication.
     """
-    current_user_id = 3
+    current_user_id = get_sub_from_jwt(token)
     # Check if room already exists
     existing_room = db.query(ChatRoom).filter(
         ((ChatRoom.user1_id == current_user_id) & (ChatRoom.user2_id == user2_id)) |
@@ -1463,10 +1484,18 @@ def create_chat_room(
         "created_at": room.created_at,
         "updated_at": room.updated_at,
     }
+@app.post("/testing/{jwt_token}")
+async def decode(
+    jwt_token: str
+):
+    """testing endpoint to decode JWT token"""
+
+    return {f"message": "JWT decoded successfully", "data": get_sub_from_jwt(jwt_token)}
 
 @app.post("/chat/{room_id}/send-message")
 async def send_chat_message(
     room_id: int,
+    token: str = Form(...),
     message_text: str = Form(None),
     media: UploadFile = File(None),
     db: Session = Depends(get_db)
@@ -1475,7 +1504,7 @@ async def send_chat_message(
 
     The sender is assumed to be user id 3.
     """
-    current_user_id = 3
+    current_user_id = get_sub_from_jwt(token)
 
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
@@ -1515,10 +1544,11 @@ async def send_chat_message(
 
 @app.get("/chat/rooms")
 def get_chat_rooms(
+    token: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Return chat rooms for the default user id 3 without authentication."""
-    current_user_id = 3
+    """Return chat rooms for the current user."""
+    current_user_id = get_sub_from_jwt(token)
     rooms = db.query(ChatRoom).filter(
         (ChatRoom.user1_id == current_user_id) | (ChatRoom.user2_id == current_user_id)
     ).order_by(ChatRoom.updated_at.desc()).all()
@@ -1535,10 +1565,12 @@ def get_chat_messages(
     room_id: int,
     skip: int = 0,
     limit: int = 50,
+    token: str = Form(...),  # Required field
     db: Session = Depends(get_db)
+    
 ):
-    """Retrieve chat messages for the default user id 3 without authentication."""
-    current_user_id = 3
+    """Retrieve chat messages for the current user."""
+    current_user_id = get_sub_from_jwt(token)
     room = db.query(ChatRoom).filter(ChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
