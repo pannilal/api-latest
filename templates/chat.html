@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - HopeWorks</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .send-icon {
+            transition: transform 0.3s ease;
+        }
+        .send-icon:hover {
+            transform: scale(1.1);
+        }
+        .send-icon.folded {
+            transform: rotate(-45deg);
+        }
+        .send-icon.heart {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <h1 class="text-2xl font-bold text-gray-900">Chat</h1>
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <div class="flex-1 overflow-y-auto p-4" id="chat-messages">
+            <!-- Messages will be dynamically added here -->
+        </div>
+
+        <!-- Message Input -->
+        <div class="bg-white border-t border-gray-200 p-4">
+            <div class="flex items-center space-x-4">
+                <input type="text" 
+                       id="message-input" 
+                       class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Type your message...">
+                <button id="send-button" class="send-icon folded">
+                    <i class="fas fa-paper-plane text-blue-500 text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sendButton = document.getElementById('send-button');
+        const messageInput = document.getElementById('message-input');
+        const chatMessages = document.getElementById('chat-messages');
+        let isFolded = true;
+
+        // Toggle send icon between folded paper and heart
+        sendButton.addEventListener('click', () => {
+            if (isFolded) {
+                sendButton.classList.remove('folded');
+                sendButton.classList.add('heart');
+                sendButton.innerHTML = '<i class="fas fa-heart text-red-500 text-2xl"></i>';
+            } else {
+                sendButton.classList.remove('heart');
+                sendButton.classList.add('folded');
+                sendButton.innerHTML = '<i class="fas fa-paper-plane text-blue-500 text-2xl"></i>';
+            }
+            isFolded = !isFolded;
+        });
+
+        // Handle message sending
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && messageInput.value.trim()) {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // Add message to chat
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'mb-4 p-3 rounded-lg bg-blue-500 text-white max-w-xs';
+                messageDiv.textContent = message;
+                chatMessages.appendChild(messageDiv);
+                
+                // Clear input
+                messageInput.value = '';
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html> 

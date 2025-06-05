@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - HopeWorks</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Sidebar -->
+        <aside class="fixed inset-y-0 left-0 bg-white shadow-md max-h-screen w-60 overflow-y-auto">
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-center h-16 bg-blue-600">
+                    <h1 class="text-white text-2xl font-bold">HopeWorks Admin</h1>
+                </div>
+                <div class="flex flex-col flex-grow p-4">
+                    <nav class="flex-1 space-y-2">
+                        <a href="#dashboard" class="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">
+                            <i class="fas fa-home mr-3"></i>
+                            Dashboard
+                        </a>
+                        <a href="#users" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-users mr-3"></i>
+                            Users
+                        </a>
+                        <a href="#posts" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-file-alt mr-3"></i>
+                            Posts
+                        </a>
+                        <a href="#verses" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-book-bible mr-3"></i>
+                            Daily Verses
+                        </a>
+                        <a href="#donations" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-hand-holding-heart mr-3"></i>
+                            Donations
+                        </a>
+                        <a href="#events" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-calendar-alt mr-3"></i>
+                            Events
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-60 p-8">
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+            {% endif %}
+            
+            <!-- Stats Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <i class="fas fa-users text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-gray-600 text-sm">Total Users</h2>
+                            <p class="text-2xl font-semibold">{{ stats.total_users|default(0) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <i class="fas fa-file-alt text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-gray-600 text-sm">Total Posts</h2>
+                            <p class="text-2xl font-semibold">{{ stats.total_posts|default(0) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                            <i class="fas fa-heart text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-gray-600 text-sm">Total Likes</h2>
+                            <p class="text-2xl font-semibold">{{ stats.total_likes|default(0) }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                            <i class="fas fa-hand-holding-usd text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-gray-600 text-sm">Total Donations</h2>
+                            <p class="text-2xl font-semibold">${{ stats.total_donations|default(0) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div id="users" class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">Users</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for user in users %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ user.username }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ user.email }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ user.created_at }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <form action="/admin/delete-user/{{ user.id }}" method="POST" class="inline">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Posts Section -->
+            <div id="posts" class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">Posts</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for post in posts %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ post.content_type }}</td>
+                                <td class="px-6 py-4">{{ post.text_content[:100] if post.text_content else "" }}...</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ post.likes_count }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ post.created_at }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <form action="/admin/delete-post/{{ post.id }}" method="POST" class="inline">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Daily Verses Section -->
+            <div id="verses" class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Daily Verses</h2>
+                    <button onclick="showVerseForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Add Verse
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verse</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Display Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for verse in verses %}
+                            <tr>
+                                <td class="px-6 py-4">{{ verse.title }}</td>
+                                <td class="px-6 py-4">{{ verse.verse_text[:100] if verse.verse_text else "" }}...</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ verse.display_date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if verse.status == 'active' %}bg-green-100 text-green-800{% endif %}">
+                                        {{ verse.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <form action="/admin/delete-verse/{{ verse.id }}" method="POST" class="inline">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Donations Section -->
+            <div id="donations" class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">Donations</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Donor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for donation in donations %}
+                            <tr>
+                                <td class="px-6 py-4">{{ donation.user_id }}</td>
+                                <td class="px-6 py-4">${{ donation.amount|float / 100 if donation.amount is number else donation.amount|default(0)|float / 100 }}</td>
+                                <td class="px-6 py-4">{{ donation.purpose }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if donation.status == 'successful' %}bg-green-100 text-green-800
+                                        {% elif donation.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ donation.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ donation.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Events Section -->
+            <div id="events" class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Events</h2>
+                    <button onclick="showEventForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Add Event
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organizer</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for event in events %}
+                            <tr>
+                                <td class="px-6 py-4">{{ event.title }}</td>
+                                <td class="px-6 py-4">{{ event.category }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ event.event_date }}</td>
+                                <td class="px-6 py-4">{{ event.organizer }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if event.status == 'active' %}bg-green-100 text-green-800
+                                        {% elif event.status == 'inactive' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ event.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <button class="text-blue-600 hover:text-blue-900 mr-3">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form action="/admin/delete-event/{{ event.id }}" method="POST" class="inline">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Forms -->
+    <div id="verseForm" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium mb-4">Add Daily Verse</h3>
+            <form action="/admin/daily-verse/create" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Title</label>
+                    <input type="text" name="title" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Verse Text</label>
+                    <textarea name="verse_text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" rows="3" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Reflection</label>
+                    <textarea name="reflection" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" rows="3"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Display Date</label>
+                    <input type="date" name="display_date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Image</label>
+                    <input type="file" name="image" accept="image/*" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" onclick="hideVerseForm()" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="eventForm" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium mb-4">Add Event</h3>
+            <form action="/admin/events/create" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Title</label>
+                    <input type="text" name="title" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                    <select name="category" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                        <option value="worship">Worship</option>
+                        <option value="youth">Youth</option>
+                        <option value="community">Community</option>
+                        <option value="mission">Mission</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Event Date</label>
+                    <input type="datetime-local" name="event_date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea name="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" rows="3" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Organizer</label>
+                    <input type="text" name="organizer" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Image</label>
+                    <input type="file" name="image" accept="image/*" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700">
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" onclick="hideEventForm()" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showVerseForm() {
+            document.getElementById('verseForm').classList.remove('hidden');
+        }
+
+        function hideVerseForm() {
+            document.getElementById('verseForm').classList.add('hidden');
+        }
+
+        function showEventForm() {
+            document.getElementById('eventForm').classList.remove('hidden');
+        }
+
+        function hideEventForm() {
+            document.getElementById('eventForm').classList.add('hidden');
+        }
+    </script>
+</body>
+</html> 

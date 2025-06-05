@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">Support Our Mission</h1>
+        
+        <!-- Donation Form -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <form id="donationForm" class="space-y-6">
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700">Donation Amount</label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                        <input type="number" name="amount" id="amount" 
+                               class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" 
+                               placeholder="0.00" min="1" step="0.01" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="purpose" class="block text-sm font-medium text-gray-700">Purpose</label>
+                    <select id="purpose" name="purpose" 
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="general">General Donation</option>
+                        <option value="missions">Missions</option>
+                        <option value="building">Building Fund</option>
+                        <option value="outreach">Outreach Programs</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700">Payment Method</label>
+                    <select id="paymentMethod" name="paymentMethod" 
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="credit_card">Credit Card</option>
+                        <option value="debit_card">Debit Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        Your donation is secure and tax-deductible
+                    </div>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Donate Now
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Donation History -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Your Donation History</h2>
+            <div id="donationHistory" class="space-y-4">
+                <!-- Donation history will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('donationForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const amount = document.getElementById('amount').value;
+    const purpose = document.getElementById('purpose').value;
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    
+    try {
+        const response = await fetch('/donations/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                amount: parseFloat(amount),
+                purpose: purpose,
+                payment_method: paymentMethod
+            })
+        });
+
+        if (response.ok) {
+            alert('Thank you for your donation!');
+            loadDonationHistory();
+        } else {
+            throw new Error('Donation failed');
+        }
+    } catch (error) {
+        alert('There was an error processing your donation. Please try again.');
+    }
+});
+
+async function loadDonationHistory() {
+    try {
+        const response = await fetch('/donations/history', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const donations = await response.json();
+            const historyContainer = document.getElementById('donationHistory');
+            historyContainer.innerHTML = donations.map(donation => `
+                <div class="border-b border-gray-200 pb-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">$${donation.amount.toFixed(2)}</p>
+                            <p class="text-sm text-gray-500">${donation.purpose || 'General Donation'}</p>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            ${new Date(donation.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error loading donation history:', error);
+    }
+}
+
+// Load donation history when page loads
+loadDonationHistory();
+</script>
+{% endblock %} 
